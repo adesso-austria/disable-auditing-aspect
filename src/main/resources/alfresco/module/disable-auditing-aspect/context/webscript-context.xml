@@ -6,5 +6,7 @@
 	<bean id="webscript.adesso.batchimport.disableauditing.put"
 		  class="com.adesso.alfresco.batchimport.DisableAuditingWebScript"
 		  parent="webscript">
+			<property name="searchService" ref="searchService" />
+			<property name="policyBehaviourFilter" ref="policyBehaviourFilter" />
 	</bean>
 </beans>

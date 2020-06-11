@@ -3,5 +3,5 @@
     <description>Disables Auditing Aspect for a certain path</description>
     <url>/batchimport/auditing</url>
     <authentication>user</authentication>
-    <format default="html"></format>
+    <format default="json"></format>
 </webscript>

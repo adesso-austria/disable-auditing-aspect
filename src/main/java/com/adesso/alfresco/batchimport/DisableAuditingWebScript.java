@@ -1,56 +1,72 @@
-/**
- * Copyright (C) 2017 Alfresco Software Limited.
- * <p/>
- * This file is part of the Alfresco SDK project.
- * <p/>
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * <p/>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 package com.adesso.alfresco.batchimport;
 
-import org.springframework.extensions.webscripts.Cache;
-import org.springframework.extensions.webscripts.AbstractWebScript;
-import org.springframework.extensions.webscripts.Status;
-import org.springframework.extensions.webscripts.WebScriptException;
-import org.springframework.extensions.webscripts.WebScriptRequest;
-import org.springframework.extensions.webscripts.WebScriptResponse;
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.alfresco.model.ContentModel;
+import org.alfresco.repo.policy.BehaviourFilter;
+import org.alfresco.service.cmr.repository.NodeRef;
+import org.alfresco.service.cmr.repository.StoreRef;
+import org.alfresco.service.cmr.search.ResultSet;
+import org.alfresco.service.cmr.search.SearchService;
+import org.alfresco.service.namespace.QName;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.springframework.extensions.webscripts.AbstractWebScript;
+import org.springframework.extensions.webscripts.WebScriptRequest;
+import org.springframework.extensions.webscripts.WebScriptResponse;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-/**
- * A demonstration Java controller for the Hello World Web Script.
- *
- * @author martin.bergljung@alfresco.com
- * @since 2.1.0
- */
 public class DisableAuditingWebScript extends AbstractWebScript {
     private static Log logger = LogFactory.getLog(DisableAuditingWebScript.class);
+    private static StoreRef rootRef = new StoreRef(StoreRef.PROTOCOL_WORKSPACE, "SpacesStore");
+    private static QName AUDITABLE_ASPECT = ContentModel.ASPECT_AUDITABLE;
+    
+    private ObjectMapper mapper = new ObjectMapper();
+    
+    private SearchService searchService;
+    private BehaviourFilter policyBehaviourFilter;
 
     @Override
     public void execute(WebScriptRequest req, WebScriptResponse res) throws IOException {
-        logger.info("Serving request");
-        try {
-            JSONObject obj = new JSONObject();
-            obj.put("name", "Alfresco");
-            String jsonString = obj.toString();
-            res.getWriter().write(jsonString);
-        } catch (JSONException e) {
-            throw new WebScriptException("Unable to serialize JSON");
+        final DisableAuditingRequestDto requestDto = this.mapper.readValue(req.getContent().getInputStream(), DisableAuditingRequestDto.class);
+        logger.info("Serving request " + requestDto);
+        
+        ResultSet result = searchService.query(
+            rootRef, 
+            SearchService.LANGUAGE_CMIS_STRICT,
+            "select cmis:objectId from cmis:document where contains (" + toPathQuery(requestDto.paths) + ")"
+        );
+        
+        if(requestDto.disable) {
+            result.getNodeRefs().forEach(ref -> disableAspect(ref));
+        } else {
+            result.getNodeRefs().forEach(ref -> enableAspect(ref));
         }
+        
+        res.setStatus(204);
+    }
+
+    public void setSearchService(SearchService service) {
+        this.searchService = service;
+    }
+
+    public void setPolicyBehaviourFilter(BehaviourFilter filter) {
+        this.policyBehaviourFilter = filter;
+    }
+
+    private void disableAspect(NodeRef ref) {
+        policyBehaviourFilter.disableBehaviour(ref, AUDITABLE_ASPECT);
+    }
+
+    private void enableAspect(NodeRef ref) {
+        policyBehaviourFilter.enableBehaviour(ref, AUDITABLE_ASPECT);
+    }
+
+    private String toPathQuery(List<String> paths) {
+        return paths.stream().map(it -> "'PATH:\"" + it + "\"'").collect(Collectors.joining(","));
     }
 }
