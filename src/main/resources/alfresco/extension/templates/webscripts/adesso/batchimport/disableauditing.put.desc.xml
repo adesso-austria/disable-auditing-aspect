@@ -1,0 +1,7 @@
+<webscript>
+    <shortname>Disable Auditing Aspect Webscript</shortname>
+    <description>Disables Auditing Aspect for a certain path</description>
+    <url>/batchimport/auditing</url>
+    <authentication>user</authentication>
+    <format default="html"></format>
+</webscript>
