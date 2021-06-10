@@ -3,34 +3,45 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.adesso</groupId>
-    <artifactId>disable-auditing-aspect</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <name>disable-auditing-aspect Platform/Repository JAR Module</name>
-    <description>Platform/Repo JAR Module (to be included in the alfresco.war)</description>
+    <artifactId>alfresco-auditable-override</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <name>alfresco-auditable-override</name>
+    <description>Platform/Repo JAR Module to override properties of the cm:auditable Aspect</description>
     <packaging>jar</packaging>
 
     <properties>
         <!-- Alfresco Maven Plugin version to use -->
-        <alfresco.sdk.version>4.1.0</alfresco.sdk.version>
+        <alfresco.sdk.version>4.2.0</alfresco.sdk.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Properties used in dependency declarations, you don't need to change these -->
         <alfresco.groupId>org.alfresco</alfresco.groupId>
         <alfresco.bomDependencyArtifactId>acs-community-packaging</alfresco.bomDependencyArtifactId>
-        <alfresco.platform.version>6.2.0-ea</alfresco.platform.version>
-        <alfresco.share.version>6.2.0</alfresco.share.version>
+        <alfresco.platform.version>7.0.0</alfresco.platform.version>
+        <alfresco.share.version>7.0.0</alfresco.share.version>
 
         <!-- Docker images -->
         <docker.acs.image>alfresco/alfresco-content-repository-community</docker.acs.image>
         <docker.share.image>alfresco/alfresco-share</docker.share.image>
+
+        <keystore.settings>-Dencryption.keystore.type=JCEKS
+            -Dencryption.cipherAlgorithm=AES/CBC/PKCS5Padding
+            -Dencryption.keyAlgorithm=AES
+            -Dencryption.keystore.location=/usr/local/tomcat/shared/classes/alfresco/extension/keystore/keystore
+            -Dmetadata-keystore.password=mp6yc0UD9e
+            -Dmetadata-keystore.aliases=metadata
+            -Dmetadata-keystore.metadata.password=oKIWzVdEdA
+            -Dmetadata-keystore.metadata.algorithm=AES</keystore.settings>
+
+        <activemq.version>5.16.1</activemq.version>
 
         <!-- JRebel Hot reloading of classpath stuff and web resource stuff -->
         <jrebel.version>1.1.8</jrebel.version>
 
         <!-- Environment configuration properties -->
         <share.port>8180</share.port>
-        <acs.host>disable-auditing-aspect-acs</acs.host>
+        <acs.host>auditable-override-acs</acs.host>
         <acs.port>8080</acs.port>
         <acs.debug.port>8888</acs.debug.port>
         <postgres.port>5555</postgres.port>
@@ -44,9 +55,14 @@
                      the Alfresco Maven IT Mojo runs as part of the parent project ... -->
     <dependencies>
         <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.16</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
+            <version>4.13.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -76,6 +92,14 @@
             <version>${alfresco.sdk.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>activemq-all</artifactId>
+            <version>${activemq.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <dependencyManagement>
