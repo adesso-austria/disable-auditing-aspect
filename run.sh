@@ -9,9 +9,9 @@ else
 fi
 
 start() {
-    docker volume create disable-auditing-aspect-acs-volume
-    docker volume create disable-auditing-aspect-db-volume
-    docker volume create disable-auditing-aspect-ass-volume
+    docker volume create auditable-override-acs-volume
+    docker volume create auditable-override-db-volume
+    docker volume create auditable-override-ass-volume
     docker-compose -f "$COMPOSE_FILE_PATH" up --build -d
 }
 
@@ -22,9 +22,9 @@ down() {
 }
 
 purge() {
-    docker volume rm -f disable-auditing-aspect-acs-volume
-    docker volume rm -f disable-auditing-aspect-db-volume
-    docker volume rm -f disable-auditing-aspect-ass-volume
+    docker volume rm -f auditable-override-acs-volume
+    docker volume rm -f auditable-override-db-volume
+    docker volume rm -f auditable-override-ass-volume
 }
 
 build() {

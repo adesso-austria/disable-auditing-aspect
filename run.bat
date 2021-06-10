@@ -67,9 +67,9 @@ echo "Usage: %0 {build_start|start|stop|purge|tail|build_test|test}"
 EXIT /B %ERRORLEVEL%
 
 :start
-    docker volume create disable-auditing-aspect-acs-volume
-    docker volume create disable-auditing-aspect-db-volume
-    docker volume create disable-auditing-aspect-ass-volume
+    docker volume create auditable-override-acs-volume
+    docker volume create auditable-override-db-volume
+    docker volume create auditable-override-ass-volume
     docker-compose -f "%COMPOSE_FILE_PATH%" up --build -d
 EXIT /B 0
 :down
@@ -93,7 +93,7 @@ EXIT /B 0
     call %MVN_EXEC% verify
 EXIT /B 0
 :purge
-    docker volume rm -f disable-auditing-aspect-acs-volume
-    docker volume rm -f disable-auditing-aspect-db-volume
-    docker volume rm -f disable-auditing-aspect-ass-volume
+    docker volume rm -f auditable-override-acs-volume
+    docker volume rm -f auditable-override-db-volume
+    docker volume rm -f auditable-override-ass-volume
 EXIT /B 0

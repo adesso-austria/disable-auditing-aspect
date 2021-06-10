@@ -1,0 +1,8 @@
+<webscript>
+    <family>adesso</family>
+    <shortname>Override Auditable Properties Webscript</shortname>
+    <description>Webscript to override properties of the cm:auditable Aspect for given Nodes</description>
+    <url>/auditable/override</url>
+    <authentication>admin</authentication>
+    <transaction>required</transaction>
+</webscript>
