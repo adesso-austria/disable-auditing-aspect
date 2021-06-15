@@ -29,4 +29,6 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
     - name: Build with Maven
-      run: ./run.sh build_test
+      run: |
+        chmod +x ./run.sh
+        ./run.sh build_test
