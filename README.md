@@ -1,5 +1,7 @@
 # Alfresco - Override Auditable
 
+![Master Build](https://github.com/adesso-austria/disable-auditing-aspect/actions/workflows/maven.yml/badge.svg)
+
 This Repository Extension adds an _admin-only_ Endpoint for overriding the normally _read-only_ properties of the ``cm:auditable`` aspect.
 
 Useful during/after migrations where those properties could not be set.
