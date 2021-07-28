@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 export COMPOSE_FILE_PATH="${PWD}/target/classes/docker/docker-compose.yml"
 
@@ -85,6 +85,7 @@ case "$1" in
     test
     tail_all
     down
+    echo "SUCCESS"
     ;;
   test)
     test

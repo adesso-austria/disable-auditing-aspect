@@ -1,17 +1,13 @@
 package com.adesso.alfresco.auditable.override;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.alfresco.model.ContentModel;
-import org.alfresco.rad.test.AbstractAlfrescoIT;
 import org.alfresco.rad.test.AlfrescoTestRunner;
-import org.alfresco.repo.transaction.RetryingTransactionHelper;
 import org.alfresco.service.cmr.model.FileInfo;
 import org.alfresco.service.cmr.repository.ContentWriter;
 import org.alfresco.service.cmr.repository.NodeRef;
 import org.alfresco.service.cmr.repository.StoreRef;
 import org.alfresco.service.cmr.search.QueryParameterDefinition;
 import org.alfresco.service.transaction.TransactionService;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
@@ -34,7 +30,6 @@ import javax.transaction.*;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -54,10 +49,6 @@ public class AuditableOverrideWebScriptIT extends AbstractWebScriptIT {
 
     private NodeRef testFolderNodeRef;
     private NodeRef testDocumentNodeRef;
-
-    public AuditableOverrideWebScriptIT() {
-        super(log);
-    }
 
     @Before
     public void setup() throws SystemException, NotSupportedException, HeuristicRollbackException, HeuristicMixedException, RollbackException {

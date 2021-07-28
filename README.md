@@ -32,3 +32,15 @@ PUT /s/auditable/override
   }
 ]
 ```
+
+## Build
+
+```shell script
+mvn clean install -DskipTests
+```
+
+## Run Integration Tests
+
+```shell script
+sh run.sh build_test
+```
