@@ -43,20 +43,21 @@ import java.util.UUID;
 import static org.junit.Assert.*;
 
 @RunWith(value = AlfrescoTestRunner.class)
-public class AuditableOverrideWebScriptIT extends AbstractAlfrescoIT {
+public class AuditableOverrideWebScriptIT extends AbstractWebScriptIT {
 
     private static final Log log = LogFactory.getLog(AuditableOverrideWebScriptIT.class);
     private static final StoreRef workspaceSpacesStore = new StoreRef(StoreRef.PROTOCOL_WORKSPACE, "SpacesStore");
     private static final String testFolderName = "folder1";
     private static final String testDocumentName = "doc1.txt";
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private TransactionService transactionService;
 
     private NodeRef testFolderNodeRef;
     private NodeRef testDocumentNodeRef;
+
+    public AuditableOverrideWebScriptIT() {
+        super(log);
+    }
 
     @Before
     public void setup() throws SystemException, NotSupportedException, HeuristicRollbackException, HeuristicMixedException, RollbackException {
@@ -69,25 +70,27 @@ public class AuditableOverrideWebScriptIT extends AbstractAlfrescoIT {
         final UserTransaction userTransaction = this.transactionService.getNonPropagatingUserTransaction();
         userTransaction.begin();
 
-        final List<NodeRef> nodes = getServiceRegistry().getSearchService().selectNodes(rootNodeRef, "/app:company_home", new QueryParameterDefinition[0], getServiceRegistry().getNamespaceService(), true);
-        assertEquals(1, nodes.size());
+        try {
+            final List<NodeRef> nodes = getServiceRegistry().getSearchService().selectNodes(rootNodeRef, "/app:company_home", new QueryParameterDefinition[0], getServiceRegistry().getNamespaceService(), true);
+            assertEquals(1, nodes.size());
 
-        final NodeRef companyHomeNodeRef = nodes.get(0);
+            final NodeRef companyHomeNodeRef = nodes.get(0);
 
-        final FileInfo testFolderFileInfo = getServiceRegistry().getFileFolderService().create(companyHomeNodeRef, testFolderName, ContentModel.TYPE_FOLDER);
-        this.testFolderNodeRef = testFolderFileInfo.getNodeRef();
-        assertNotNull(this.testFolderNodeRef);
+            final FileInfo testFolderFileInfo = getServiceRegistry().getFileFolderService().create(companyHomeNodeRef, testFolderName, ContentModel.TYPE_FOLDER);
+            this.testFolderNodeRef = testFolderFileInfo.getNodeRef();
+            assertNotNull(this.testFolderNodeRef);
 
-        final FileInfo testDocumentFileInfo = getServiceRegistry().getFileFolderService().create(this.testFolderNodeRef, testDocumentName, ContentModel.TYPE_CONTENT);
-        this.testDocumentNodeRef = testDocumentFileInfo.getNodeRef();
-        assertNotNull(this.testDocumentNodeRef);
+            final FileInfo testDocumentFileInfo = getServiceRegistry().getFileFolderService().create(this.testFolderNodeRef, testDocumentName, ContentModel.TYPE_CONTENT);
+            this.testDocumentNodeRef = testDocumentFileInfo.getNodeRef();
+            assertNotNull(this.testDocumentNodeRef);
 
-        final ContentWriter contentWriter1 = getServiceRegistry().getContentService().getWriter(this.testDocumentNodeRef, ContentModel.PROP_CONTENT, false);
-        contentWriter1.setEncoding("UTF-8");
-        contentWriter1.setMimetype("text/plain");
-        contentWriter1.putContent("Test Document");
-
-        userTransaction.commit();
+            final ContentWriter contentWriter1 = getServiceRegistry().getContentService().getWriter(this.testDocumentNodeRef, ContentModel.PROP_CONTENT, false);
+            contentWriter1.setEncoding("UTF-8");
+            contentWriter1.setMimetype("text/plain");
+            contentWriter1.putContent("Test Document");
+        } finally {
+            userTransaction.commit();
+        }
     }
 
     @Test
@@ -95,20 +98,38 @@ public class AuditableOverrideWebScriptIT extends AbstractAlfrescoIT {
         final int year = 2000;
         final Date newCreatedDate = Date.from(LocalDate.of(year, 1, 1).atStartOfDay(ZoneId.of("UTC")).toInstant());
 
-        overrideCreatedProperty(newCreatedDate);
+        final AuditableOverrideDTO overrideFolderCreated = AuditableOverrideDTO.of(
+                UUID.fromString(testFolderNodeRef.getId()),
+                Collections.singletonMap("cm:created", DATE_TIME_FORMATTER.format(newCreatedDate.toInstant().atOffset(ZoneOffset.UTC)))
+        );
 
-        final UserTransaction userTransaction = this.transactionService.getNonPropagatingUserTransaction();
+        final AuditableOverrideDTO overrideDocumentCreated = AuditableOverrideDTO.of(
+                UUID.fromString(testDocumentNodeRef.getId()),
+                Collections.singletonMap("{http://www.alfresco.org/model/content/1.0}created", DATE_TIME_FORMATTER.format(newCreatedDate.toInstant().atOffset(ZoneOffset.UTC)))
+        );
+
+        HttpResponse httpResponse = callWebScript(new AuditableOverrideDTO[]{overrideFolderCreated, overrideDocumentCreated});
+
+        if (httpResponse.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+            log.error(httpResponse.getEntity());
+        }
+
+        assertEquals(HttpStatus.SC_OK, httpResponse.getStatusLine().getStatusCode());
+
+        final UserTransaction userTransaction = this.transactionService.getNonPropagatingUserTransaction(true);
         userTransaction.begin();
 
-        // test folder1 property cm:created can be updated
-        final Date testFolderCreated = (Date) getServiceRegistry().getNodeService().getProperty(testFolderNodeRef, ContentModel.PROP_CREATED);
-        assertEquals(year - 1900, testFolderCreated.getYear());
+        try {
+            // test folder1 property cm:created can be updated
+            final Date testFolderCreated = (Date) getServiceRegistry().getNodeService().getProperty(testFolderNodeRef, ContentModel.PROP_CREATED);
+            assertEquals(year - 1900, testFolderCreated.getYear());
 
-        // test doc1.txt property cm:created can be updated
-        final Date testDocumentCreated = (Date) getServiceRegistry().getNodeService().getProperty(testDocumentNodeRef, ContentModel.PROP_CREATED);
-        assertEquals(year - 1900, testDocumentCreated.getYear());
-
-        userTransaction.commit();
+            // test doc1.txt property cm:created can be updated
+            final Date testDocumentCreated = (Date) getServiceRegistry().getNodeService().getProperty(testDocumentNodeRef, ContentModel.PROP_CREATED);
+            assertEquals(year - 1900, testDocumentCreated.getYear());
+        } finally {
+            userTransaction.commit();
+        }
     }
 
     @After
@@ -122,18 +143,8 @@ public class AuditableOverrideWebScriptIT extends AbstractAlfrescoIT {
         userTransaction.commit();
     }
 
-    public void overrideCreatedProperty(final Date date) throws Exception {
+    private HttpResponse callWebScript(final AuditableOverrideDTO[] payload) throws Exception {
         final String webscriptURL = getPlatformEndpoint() + "/s/auditable/override";
-
-        final AuditableOverrideDTO overrideFolderCreated = AuditableOverrideDTO.of(
-                UUID.fromString(testFolderNodeRef.getId()),
-                Collections.singletonMap("cm:created", DATE_TIME_FORMATTER.format(date.toInstant().atOffset(ZoneOffset.UTC)))
-        );
-
-        final AuditableOverrideDTO overrideDocumentCreated = AuditableOverrideDTO.of(
-                UUID.fromString(testDocumentNodeRef.getId()),
-                Collections.singletonMap("cm:created", DATE_TIME_FORMATTER.format(date.toInstant().atOffset(ZoneOffset.UTC)))
-        );
 
         final CredentialsProvider provider = new BasicCredentialsProvider();
         final UsernamePasswordCredentials credentials = new UsernamePasswordCredentials("admin", "admin");
@@ -142,20 +153,11 @@ public class AuditableOverrideWebScriptIT extends AbstractAlfrescoIT {
         try (final CloseableHttpClient httpclient = HttpClientBuilder.create().setDefaultCredentialsProvider(provider).build()) {
             final HttpPut putRequest = new HttpPut(webscriptURL);
 
-            putRequest.setEntity(new StringEntity(objectMapper.writeValueAsString(new AuditableOverrideDTO[]{overrideFolderCreated, overrideDocumentCreated}), ContentType.APPLICATION_JSON));
-
-            final HttpResponse httpResponse = httpclient.execute(putRequest);
-
-            if (httpResponse.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                log.error(httpResponse.getEntity());
+            if (payload != null) {
+                putRequest.setEntity(new StringEntity(OBJECT_MAPPER.writeValueAsString(payload), ContentType.APPLICATION_JSON));
             }
 
-            assertEquals(HttpStatus.SC_OK, httpResponse.getStatusLine().getStatusCode());
+            return httpclient.execute(putRequest);
         }
-    }
-
-    private String getPlatformEndpoint() {
-        final String platformEndpoint = System.getProperty("acs.endpoint.path");
-        return StringUtils.isNotBlank(platformEndpoint) ? platformEndpoint : "http://localhost:8080/alfresco";
     }
 }

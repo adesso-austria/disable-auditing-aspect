@@ -27,7 +27,7 @@ PUT /s/auditable/override
   {
     "nodeId": "66666666-7777-8888-9999-000000000000",
     "properties": {
-      "cm:created": "2000-01-02T00:00:00.000+00:00"
+      "{http://www.alfresco.org/model/content/1.0}created": "2000-01-02T00:00:00.000+00:00"
     }
   }
 ]
